@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arsenal Staff Only</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: black;
+      font-family: Arial, Helvetica, sans-serif;
+      color: white;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    /* STAFF background */
+    body::before {
+      content: "STAFF STAFF STAFF STAFF STAFF STAFF STAFF STAFF STAFF STAFF ";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 200%;
+      height: 200%;
+      font-size: 4rem;
+      font-weight: bold;
+      color: rgba(255,255,255,0.05);
+      transform: rotate(-25deg);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .lock-box, .container {
+      position: relative;
+      background: rgba(0,0,0,0.85);
+      padding: 40px;
+      border-radius: 12px;
+      border: 2px solid white;
+      box-shadow: 0 0 25px rgba(255,255,255,0.2);
+      max-width: 420px;
+      width: 90%;
+    }
+
+    .container {
+      display: none;
+      max-width: 650px;
+    }
+
+    h1 {
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .subtitle {
+      color: #ccc;
+      margin-bottom: 10px;
+    }
+
+    .warning {
+      color: #ff4d4d;
+      font-weight: bold;
+      margin-top: 10px;
+      text-transform: uppercase;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 15px;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px;
+      width: 100%;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .error {
+      margin-top: 10px;
+      color: #ff4d4d;
+      display: none;
+    }
+
+    /* Chat */
+    #chatBox {
+      height: 200px;
+      overflow-y: auto;
+      border: 1px solid #555;
+      padding: 10px;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- LOCK SCREEN -->
+  <div class="lock-box" id="lockBox">
+    <h1>🔒 Staff Access</h1>
+    <p class="subtitle">Only Arsenal Staffs</p>
+    <input type="password" id="password" placeholder="Enter password" />
+    <button onclick="unlock()">Unlock</button>
+    <div class="error" id="error"></div>
+  </div>
+
+  <!-- STAFF PAGE -->
+  <div class="container" id="content">
+    <h1>Staff Only</h1>
+    <p class="subtitle">Only Arsenal Staffs</p>
+    <p class="warning">Any other member noticed will result in immediate ban</p>
+
+    <hr style="margin:25px 0; opacity:0.3">
+
+    <h2>Staff Chat</h2>
+    <div id="chatBox"></div>
+    <input type="text" id="chatInput" placeholder="Type a message..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    /* PASSWORD + LOCK SYSTEM */
+    const correctPassword = "arsenal_staff_team";
+    const maxAttempts = 5;
+    const lockTime = 30 * 60 * 1000; // 30 minutes
+
+    let attempts = parseInt(localStorage.getItem("attempts")) || 0;
+    let lockedUntil = parseInt(localStorage.getItem("lockedUntil")) || null;
+
+    const errorBox = document.getElementById("error");
+    const passwordInput = document.getElementById("password");
+
+    function checkLock() {
+      if (lockedUntil && Date.now() < lockedUntil) {
+        let remaining = Math.ceil((lockedUntil - Date.now()) / 60000);
+        passwordInput.disabled = true;
+        errorBox.style.display = "block";
+        errorBox.innerText = `Too many attempts. Try again in ${remaining} minute(s).`;
+      } else {
+        passwordInput.disabled = false;
+        localStorage.removeItem("lockedUntil");
+        localStorage.removeItem("attempts");
+        attempts = 0;
+      }
+    }
+
+    function unlock() {
+      checkLock();
+      if (passwordInput.disabled) return;
+
+      if (passwordInput.value === correctPassword) {
+        localStorage.removeItem("attempts");
+        localStorage.removeItem("lockedUntil");
+        document.getElementById("lockBox").style.display = "none";
+        document.getElementById("content").style.display = "block";
+      } else {
+        attempts++;
+        localStorage.setItem("attempts", attempts);
+
+        if (attempts >= maxAttempts) {
+          let lockUntil = Date.now() + lockTime;
+          localStorage.setItem("lockedUntil", lockUntil);
+          checkLock();
+        } else {
+          errorBox.style.display = "block";
+          errorBox.innerText = `Incorrect password. ${maxAttempts - attempts} attempts left.`;
+        }
+      }
+    }
+
+    checkLock();
+
+    /* STAFF CHAT (LOCAL) */
+    const chatBox = document.getElementById("chatBox");
+    const chatInput = document.getElementById("chatInput");
+
+    function loadMessages() {
+      let messages = JSON.parse(localStorage.getItem("staffChat") || "[]");
+      chatBox.innerHTML = "";
+      messages.forEach(msg => {
+        let div = document.createElement("div");
+        div.textContent = msg;
+        chatBox.appendChild(div);
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function sendMessage() {
+      let text = chatInput.value.trim();
+      if (!text) return;
+      let messages = JSON.parse(localStorage.getItem("staffChat") || "[]");
+      messages.push(text);
+      localStorage.setItem("staffChat", JSON.stringify(messages));
+      chatInput.value = "";
+      loadMessages();
+    }
+
+    window.addEventListener("storage", loadMessages);
+    loadMessages();
+  </script>
+
+</body>
+</html>
+
